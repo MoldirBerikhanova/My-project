@@ -27,7 +27,7 @@ type createUserRequest struct {
 	Name        string               `form:"name"`
 	Email       string               `form:"email"`
 	Password    string               `form:"password"`
-	PhoneNumber *int                 `form:"phonenumber"`
+	PhoneNumber string               `form:"phonenumber"`
 	Birthday    *time.Time           `form:"birthday"`
 	Poster      multipart.FileHeader `form:"posterUrl"`
 }
@@ -36,7 +36,7 @@ type updateUserRequest struct {
 	Name        string               `form:"name"`
 	Email       string               `form:"email"`
 	Password    string               `form:"password"`
-	PhoneNumber *int                 `form:"phonenumber"`
+	PhoneNumber string               `form:"phonenumber"`
 	Birthday    *time.Time           `form:"birthday"`
 	Poster      multipart.FileHeader `form:"posterUrl"`
 }
@@ -148,9 +148,28 @@ func (h *UsersHandlers) Create(c *gin.Context) {
 		return
 	}
 
+	user, err := h.userRepo.FindByEmail(c, request.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("User already exists"))
+		return
+	}
+
 	filename, err := h.saveGenrePoster(c, &request.Poster)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.NewApiError(err.Error()))
+		return
+	}
+
+	formattedBirthday := request.Birthday.Format("1990-01-01")
+	birthday, err := time.Parse("1990-01-01", formattedBirthday)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid birthday format. Use DD.MM.YYYY"))
+		return
+	}
+
+	formattedPhone, err := formatPhoneNumber(request.PhoneNumber, "KZ") // "KZ" — код страны по умолчанию
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid phone number"))
 		return
 	}
 
@@ -160,13 +179,13 @@ func (h *UsersHandlers) Create(c *gin.Context) {
 		return
 	}
 
-	user := models.User{
-		Name:         request.Name,
-		Email:        request.Email,
-		PasswordHash: string(passwordHash),
-		PhoneNumber:  request.PhoneNumber,
-		Birthday:     request.Birthday,
-		PosterUrl:    filename,
+	user = models.User{
+		Name:        request.Name,
+		Email:       request.Email,
+		Password:    string(passwordHash),
+		PhoneNumber: &formattedPhone,
+		Birthday:    &birthday,
+		PosterUrl:   &filename,
 	}
 
 	id, err := h.userRepo.Create(c, user)
@@ -210,10 +229,22 @@ func (h *UsersHandlers) Update(c *gin.Context) {
 		return
 	}
 
+	birthday, err := time.Parse("02.01.2006", request.Birthday.Format("02.01.2006"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid birthday format. Use DD.MM.YYYY"))
+		return
+	}
+
+	formattedPhone, err := formatPhoneNumber(request.PhoneNumber, "KZ") // "KZ" — код страны по умолчанию
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid phone number"))
+		return
+	}
+
 	user.Name = request.Name
 	user.Email = request.Email
-	user.PhoneNumber = request.PhoneNumber
-	user.Birthday = request.Birthday
+	user.PhoneNumber = &formattedPhone
+	user.Birthday = &birthday
 
 	err = h.userRepo.Update(c, id, user)
 	if err != nil {
@@ -296,7 +327,7 @@ func (h *UsersHandlers) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	user.PasswordHash = string(passwordHash)
+	user.Password = string(passwordHash)
 
 	err = h.userRepo.Update(c, id, user)
 	if err != nil {

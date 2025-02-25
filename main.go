@@ -151,7 +151,10 @@ func main() {
 	unauthorized := r.Group("")
 	unauthorized.GET("/images/:imageId", imageHandlers.HandleGetImageById)
 	unauthorized.GET("/video/:videoId", videoHandlers.HandleGetVideoById)
+
 	unauthorized.POST("/auth/signIn", authHandlers.SignIn) //http://localhost:8081/auth/signIn
+	unauthorized.POST("/auth/signUp", authHandlers.SignUp)
+
 	docs.SwaggerInfo.BasePath = "/"
 	unauthorized.GET("/swagger/*any", swagger.WrapHandler(swaggerfiles.Handler))
 

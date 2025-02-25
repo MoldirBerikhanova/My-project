@@ -3,7 +3,9 @@ package repositories
 import (
 	"context"
 	"goozinshe/models"
+	"log"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -27,14 +29,14 @@ func (r *UsersRepository) IsAdmin(c context.Context, id int) (bool, error) {
 }
 
 func (r *UsersRepository) FindById(c context.Context, id int) (models.User, error) {
-	row := r.db.QueryRow(c, "select id, name, email, password_hash, phonenumber, birthday, role, poster_url from users where id = $1", id)
+	row := r.db.QueryRow(c, "select id, name, email, password, phonenumber, birthday, is_admin, poster_url from users where id = $1", id)
 
 	var user models.User
 	err := row.Scan(
 		&user.Id,
 		&user.Name,
 		&user.Email,
-		&user.PasswordHash,
+		&user.Password,
 		&user.PhoneNumber,
 		&user.Birthday,
 		&user.IsAdmin,
@@ -47,24 +49,30 @@ func (r *UsersRepository) FindById(c context.Context, id int) (models.User, erro
 }
 
 func (r *UsersRepository) FindByEmail(c context.Context, email string) (models.User, error) {
-	row := r.db.QueryRow(c, "select id, name, email, password_hash, phonenumber, birthday, role, poster_url from users where email = $1", email)
+	row := r.db.QueryRow(c, "select id, name, email, password, phonenumber, birthday, is_admin, poster_url from users where email = $1", email)
 
 	var user models.User
 	err := row.Scan(
 		&user.Id,
 		&user.Name,
 		&user.Email,
-		&user.PasswordHash,
+		&user.Password,
 		&user.PhoneNumber,
 		&user.Birthday,
 		&user.IsAdmin,
 		&user.PosterUrl)
-
+	if err == pgx.ErrNoRows {
+		log.Println("Пользователь не найден")
+		return models.User{}, nil
+	} else if err != nil {
+		log.Printf("Ошибка при поиске пользователя: %v", err)
+		return models.User{}, err
+	}
 	return user, err
 }
 
 func (r *UsersRepository) FindAll(c context.Context) ([]models.User, error) {
-	rows, err := r.db.Query(c, "select id, name, email, password_hash, phonenumber, birthday, role, poster_url from users order by id")
+	rows, err := r.db.Query(c, "select id, name, email, password, phonenumber, birthday, is_admin, poster_url from users order by id")
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +84,7 @@ func (r *UsersRepository) FindAll(c context.Context) ([]models.User, error) {
 			&user.Id,
 			&user.Name,
 			&user.Email,
-			&user.PasswordHash,
+			&user.Password,
 			&user.PhoneNumber,
 			&user.Birthday,
 			&user.IsAdmin,
@@ -96,27 +104,36 @@ func (r *UsersRepository) FindAll(c context.Context) ([]models.User, error) {
 
 func (r *UsersRepository) Create(c context.Context, user models.User) (int, error) {
 	var id int
-	err := r.db.QueryRow(c, "insert into users(name, email, password_hash, phonenumber, birthday, role, poster_url) values($1, $2, $3, $4, $5, $6, $7) returning id",
+	row := r.db.QueryRow(c, "insert into users(name, email, password, phonenumber, birthday, is_admin, poster_url) values($1, $2, $3, $4, $5, $6, $7) returning id",
 		user.Name,
 		user.Email,
-		user.PasswordHash,
+		user.Password,
 		user.PhoneNumber,
 		user.Birthday,
 		user.IsAdmin,
-		user.PosterUrl).Scan(&id)
+		user.PosterUrl)
+
+	err := row.Scan(&id)
+	if err == pgx.ErrNoRows {
+		log.Println("Пользователь не найден")
+		return 0, nil
+	} else if err != nil {
+		log.Printf("Ошибка при вставке пользователя: %v", err)
+		return 0, err
+	}
 
 	return id, err
 }
 
-func (r *UsersRepository) Update(c context.Context, id int, user models.User) error {
-	_, err := r.db.Exec(c, "update users set name = $1, email = $2, password_hash = $3, phonenumber = $4, birthday = $5, role = $6, poster_url = $7  where id = $8",
-		user.Name,
-		user.Email,
-		user.PasswordHash,
-		user.PhoneNumber,
-		user.Birthday,
-		user.IsAdmin,
-		user.PosterUrl, id)
+func (r *UsersRepository) Update(c context.Context, id int, updateuser models.User) error {
+	_, err := r.db.Exec(c, "update users set name = $1, email = $2, password = $3, phonenumber = $4, birthday = $5, is_admin = $6, poster_url = $7  where id = $8",
+		updateuser.Name,
+		updateuser.Email,
+		updateuser.Password,
+		updateuser.PhoneNumber,
+		updateuser.Birthday,
+		updateuser.IsAdmin,
+		updateuser.PosterUrl, id)
 	return err
 }
 
