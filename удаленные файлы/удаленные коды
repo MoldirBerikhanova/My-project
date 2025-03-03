@@ -1,0 +1,1834 @@
+// FindById godoc
+// @Tags         поиск user по id(Админ ищет юзера)
+// @Summary      Role Finds user by id
+// @Accept       json
+// @Produce      json
+// @Param id path int true "Roles id"
+// @Success      200  {array}  handlers.rolesResponse  "OK"
+// @Failure   	 400  {object} models.ApiError "Invalid role id"
+// @Failure   	 404  {object} models.ApiError "Role not found"
+// @Failure   	 500  {object} models.ApiError
+// @Router       /rolesusers/{id} [get]
+func (h *RolesHandlers) FindByIdUser(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid user Id"))
+		return
+	}
+
+	user, err := h.userRepo.FindById(c, id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, models.NewApiError("User not found"))
+		return
+	}
+
+	r := userResponse{
+		Id:          user.Id,
+		Name:        user.Name,
+		Email:       user.Email,
+		PhoneNumber: user.PhoneNumber,
+		Birthday:    user.Birthday,
+	}
+
+	c.JSON(http.StatusOK, r)
+}
+
+// FindAll godoc
+// @Tags 		 Админ получает список юзеров
+// @Summary      Roles gets user's list
+// @Produce      json
+// @Success      200  {array} handlers.userResponse "OK"
+// @Failure   	 500  {object} models.ApiError
+// @Router       /rolesuser [get]
+func (h *RolesHandlers) FindAllUsers(c *gin.Context) {
+	users, err := h.userRepo.FindAll(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError("could not load users"))
+		return
+	}
+
+	dtos := make([]userResponse, 0, len(users))
+	for _, u := range users {
+		r := userResponse{
+			Id:          u.Id,
+			Name:        u.Name,
+			Email:       u.Email,
+			PhoneNumber: u.PhoneNumber,
+			Birthday:    u.Birthday,
+		}
+		dtos = append(dtos, r)
+	}
+
+	c.JSON(http.StatusOK, dtos)
+}
+
+// Update godoc
+// @Tags         Админ редактирует данные юзера
+// @Summary      Role Updates user´s information
+// @Accept       json
+// @Produce      json
+// @Param id path int true "User id"
+// @Param request body handlers.updateUserRequest true "User data"
+// @Success      200  {object} object{id=int} "OK"
+// @Failure   	 400  {object} models.ApiError "Invalid data"
+// @Failure   	 404  {object} models.ApiError "User not found"
+// @Failure   	 500  {object} models.ApiError
+// @Router       /rolesuser/{id} [put]
+func (h *RolesHandlers) UpdateUser(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid user Id"))
+		return
+	}
+
+	var request updateUserRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid request payload"))
+		return
+	}
+
+	user, err := h.userRepo.FindById(c, id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, models.NewApiError("User not found"))
+		return
+	}
+
+	user.Name = request.Name
+	user.Email = request.Email
+	user.PhoneNumber = request.PhoneNumber
+	user.Birthday = request.Birthday
+
+	err = h.userRepo.Update(c, id, user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError(err.Error()))
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+// Delete godoc
+// @Tags         Админ удаляет юзера
+// @Summary      Delete user
+// @Accept       json
+// @Produce      json
+// @Param id path int true "User id"
+// @Success      200  "OK"
+// @Failure   	 400  {object} models.ApiError "Invalid data"
+// @Failure   	 404  {object} models.ApiError "User not found"
+// @Failure   	 500  {object} models.ApiError
+// @Router      /rolesuser/{id} [delete]
+func (h *RolesHandlers) DeleteUser(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid user Id"))
+		return
+	}
+
+	_, err = h.userRepo.FindById(c, id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, models.NewApiError("User not found"))
+		return
+	}
+
+	err = h.userRepo.Delete(c, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError(err.Error()))
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+// ChangePassword godoc
+// @Tags         Админ меняет пароль юзера
+// @Summary      Change user password
+// @Accept       json
+// @Produce      json
+// @Param id path int true "User id"
+// @Param request body handlers.changePasswordRequest true "Password data"
+// @Success      200  "OK"
+// @Failure   	 400  {object} models.ApiError "Invalid data"
+// @Failure   	 404  {object} models.ApiError "User not found"
+// @Failure   	 500  {object} models.ApiError
+// @Router       /rolesuser/{id}/changePassword [patch]
+func (h *RolesHandlers) ChangePasswordUser(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid user Id"))
+		return
+	}
+
+	var request changePasswordRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid request payload"))
+		return
+	}
+
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError("Failed to hash password"))
+		return
+	}
+
+	user, err := h.userRepo.FindById(c, id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, models.NewApiError("User not found"))
+		return
+	}
+
+	user.PasswordHash = string(passwordHash)
+
+	err = h.userRepo.Update(c, id, user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError(err.Error()))
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+// FindById godoc
+// @Summary      Find by id
+// @Tags         Админ ищет фильм
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "Movie id"
+// @Success      200  {object}  models.MovieAdminResponse
+// @Failure      400  {object}  models.ApiError "Invalid Movie Id"
+// @Router       /rolesmovie/{id} [get]
+func (h *RolesHandlers) FindByIdMoviesAdmin(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid Movie Id"))
+
+		return
+	}
+
+	movie, err := h.moviesAdminRepo.FindById(c, id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, movie)
+}
+
+// FindAll godoc
+// @Summary      Get all moviesAdmin
+// @Tags         Админ получает список фильмов
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  []models.MovieAdminResponse "List of movies"
+// @Failure      500  {object}  models.ApiError "Internal Server Error"
+// @Router       /rolesmovie [get]
+func (h *RolesHandlers) FindAllMoviesforAdmin(c *gin.Context) {
+	filters := models.MovieFilters{
+		SearchTerm: c.Query("search"),
+		IsWatched:  c.Query("iswatched"),
+		GenreId:    c.Query("genreids"),
+		Sort:       c.Query("sort"),
+	}
+	movies, err := h.moviesAdminRepo.FindAll(c, filters)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, movies)
+}
+
+func (h *RolesHandlers) saveMoviesPoster(c *gin.Context, poster *multipart.FileHeader) (string, error) {
+	filename := fmt.Sprintf("%s%s", uuid.NewString(), filepath.Ext(poster.Filename))
+	filepath := fmt.Sprintf("images/%s", filename)
+	err := c.SaveUploadedFile(poster, filepath)
+
+	return filename, err
+}
+
+// Update godoc
+// @Summary      Update moviesAdmin
+// @Tags         Админ редактирует фильм
+// @Accept       json
+// @Produce      json
+// @Param        title body string true "Title of the movie"
+// @Param        description body string true "Description of the movie"
+// @Param        releaseYear body int true "ReleaseYear of the movie"
+// @Param        director body string true "Director"
+// @Param        trailerUrl body string true "TrailerUrl"
+// @Param      	 genreIds body []int true "Genre ids"
+// @Param		 categoryIds body []int true "Category ids"
+// @Param        ageIds body []int true "Age ids"
+// @Success      200  {object}  object{id=int} "OK"
+// @Failure      400  {object}  models.ApiError "Could not bind json"
+// @Failure      500  {object}  models.ApiError
+// @Router       /rolesmovie/{id} [put]
+func (h *RolesHandlers) UpdateMovies(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid Movie Id"))
+		return
+	}
+
+	_, err = h.moviesAdminRepo.FindById(c, id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	var request updateMovieAdminResponseRequest
+	err = c.Bind(&request)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Could not bind json"))
+		return
+	}
+
+	genres, err := h.genresRepo.FindAllByIds(c, request.GenreIds)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+	categories, err := h.categoryRepo.FindAllByIds(c, request.CategoryIds)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	ages, err := h.ageRepo.FindAllByIds(c, request.AgeIds)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	allseries, err := h.allserieRepo.FindAllByIds(c, request.AgeIds)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	filename, err := h.saveMoviesPoster(c, request.PosterUrl)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError(err.Error()))
+		return
+	}
+
+	movie := models.MovieAdminResponse{
+		Title:       request.Title,
+		Description: request.Description,
+		ReleaseYear: request.ReleaseYear,
+		Director:    request.Director,
+		TrailerUrl:  request.TrailerUrl,
+		PosterUrl:   filename,
+		Genres:      genres,
+		Category:    categories,
+		Ages:        ages,
+		AllSeries:   allseries,
+	}
+
+	err = h.moviesAdminRepo.Update(c, id, movie)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError("Failed to update movie"))
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+// Delete godoc
+// @Summary      Delete movie
+// @Tags        Админ удаляет фильм
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "Movie id"
+// @Success      200  "OK"
+// @Failure   	 400  {object} models.ApiError "Invalid data"
+// @Failure   	 500  {object} models.ApiError
+// @Router       /rolesmovie/{id} [delete]
+func (h *RolesHandlers) DeleteMovie(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid Movie Id"))
+		return
+	}
+
+	_, err = h.moviesAdminRepo.FindById(c, id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	h.moviesAdminRepo.Delete(c, id)
+
+	c.Status(http.StatusNoContent)
+}
+
+// HandleSetWatched godoc
+// @Summary      Mark moviesAdmin as watched
+// @Tags         количество просмотров доступен только для Админа
+// @Accept       json
+// @Produce      json
+// @Param id path int true "Movie id"
+// @Param isWatched query bool true "Flag value"
+// @Success      200  "OK"
+// @Failure   	 400  {object} models.ApiError "Invalid data"
+// @Failure   	 500  {object} models.ApiError
+// @Router       /rolesmovie/{id}/setWatched [patch]
+func (h *RolesHandlers) HandleSetWatched(c *gin.Context) {
+	idStr := c.Param("movieId")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid Movie Id"))
+		return
+	}
+
+	isWatchedStr := c.Query("isWatched")
+	isWatched, err := strconv.ParseBool(isWatchedStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid isWatched value"))
+		return
+	}
+
+	err = h.moviesAdminRepo.SetWatched(c, id, isWatched)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError(err.Error()))
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+package handlers
+
+import (
+	//"fmt"
+	"goozinshe/models"
+	"goozinshe/repositories"
+	//"mime/multipart"
+	"net/http"
+	//"path/filepath"
+	"strconv"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	//"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
+)
+
+type RolesHandlers struct {
+	rolesRepo       *repositories.RolesRepository
+	userRepo        *repositories.UsersRepository
+	moviesAdminRepo *repositories.MoviesAdminRepository
+	genresRepo      *repositories.GenresRepository
+	categoryRepo    *repositories.CategoryRepository
+	ageRepo         *repositories.AgeRepository
+	allserieRepo    *repositories.AllSeriesRepository
+}
+
+func NewRolesHandlers(
+	rolesRepo *repositories.RolesRepository,
+	) *RolesHandlers {
+	return &RolesHandlers{
+		rolesRepo:       rolesRepo}
+}
+
+type createRolesRequest struct {
+	Name        string
+	Email       string
+	Password    string
+	PhoneNumber *int
+	Birthday    *time.Time
+}
+
+type updateRolesRequest struct {
+	Name        string
+	Email       string
+	PhoneNumber *int
+	Birthday    *time.Time
+}
+
+type changeRolesPasswordRequest struct {
+	Password string
+}
+
+type rolesResponse struct {
+	Id          int        `json:"id"`
+	Name        string     `json:"name"`
+	Email       string     `json:"email"`
+	PhoneNumber *int       `json:"phonenumber"`
+	Birthday    *time.Time `json:"birthday"`
+}
+
+// FindById godoc
+// @Tags         roles - это выполняет роль Админа
+// @Summary      Find role by id
+// @Accept       json
+// @Produce      json
+// @Param id path int true "Roles id"
+// @Success      200  {array}  handlers.rolesResponse  "OK"
+// @Failure   	 400  {object} models.ApiError "Invalid role id"
+// @Failure   	 404  {object} models.ApiError "Role not found"
+// @Failure   	 500  {object} models.ApiError
+// @Router       /roles/{id} [get]
+func (h *RolesHandlers) FindById(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid role Id"))
+		return
+	}
+
+	role, err := h.rolesRepo.FindById(c, id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, models.NewApiError("Role not found"))
+		return
+	}
+
+	r := rolesResponse{
+		Id:          role.Id,
+		Name:        role.Name,
+		Email:       role.Email,
+		PhoneNumber: role.PhoneNumber,
+		Birthday:    role.Birthday,
+	}
+
+	c.JSON(http.StatusOK, r)
+}
+
+// FindAll godoc
+// @Tags         roles - это выполняет роль Админа
+// @Summary      Get roles list
+// @Accept       json
+// @Produce      json
+// @Success      200  {array} handlers.rolesResponse "OK"
+// @Failure   	 500  {object} models.ApiError
+// @Router       /roles [get]
+func (h *RolesHandlers) FindAll(c *gin.Context) {
+	roles, err := h.rolesRepo.FindAll(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError("could not load roles"))
+		return
+	}
+
+	dtos := make([]rolesResponse, 0, len(roles))
+	for _, r := range roles {
+		r := rolesResponse{
+			Id:          r.Id,
+			Name:        r.Name,
+			Email:       r.Email,
+			PhoneNumber: r.PhoneNumber,
+			Birthday:    r.Birthday,
+		}
+		dtos = append(dtos, r)
+	}
+
+	c.JSON(http.StatusOK, dtos)
+}
+
+// Create godoc
+// @Tags         roles - это выполняет роль Админа
+// @Summary      Create role
+// @Accept       json
+// @Produce      json
+// @Param request body handlers.createRolesRequest true "Roles data"
+// @Success      200  {object} object{id=int} "OK"
+// @Failure   	 400  {object} models.ApiError "Invalid data"
+// @Failure   	 500  {object} models.ApiError
+// @Router       /roles [post]
+func (h *RolesHandlers) Create(c *gin.Context) {
+	var request createRolesRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid payload"))
+		return
+	}
+
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError("Failed to hash password"))
+		return
+	}
+
+	role := models.Roles{
+		Name:         request.Name,
+		Email:        request.Email,
+		PasswordHash: string(passwordHash),
+		PhoneNumber:  request.PhoneNumber,
+		Birthday:     request.Birthday,
+	}
+
+	id, err := h.rolesRepo.Create(c, role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError("could not create role"))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"id": id})
+}
+
+// Update godoc
+// @Tags         roles - это выполняет роль Админа
+// @Summary      Update role
+// @Accept       json
+// @Produce      json
+// @Param id path int true "Role id"
+// @Param request body handlers.updateRolesRequest true "Role data"
+// @Success      200  {object} object{id=int} "OK"
+// @Failure   	 400  {object} models.ApiError "Invalid data"
+// @Failure   	 404  {object} models.ApiError "Role not found"
+// @Failure   	 500  {object} models.ApiError
+// @Router       /roles/{id} [put]
+func (h *RolesHandlers) Update(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid role Id"))
+		return
+	}
+
+	var request updateRolesRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid request payload"))
+		return
+	}
+
+	roles, err := h.rolesRepo.FindById(c, id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, models.NewApiError("Role not found"))
+		return
+	}
+
+	roles.Name = request.Name
+	roles.Email = request.Email
+	roles.PhoneNumber = request.PhoneNumber
+	roles.Birthday = request.Birthday
+
+	err = h.rolesRepo.Update(c, id, roles)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError(err.Error()))
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+// Delete godoc
+// @Tags         roles - это выполняет роль Админа
+// @Summary      Delete role
+// @Accept       json
+// @Produce      json
+// @Param id path int true "Role id"
+// @Success      200  "OK"
+// @Failure   	 400  {object} models.ApiError "Invalid data"
+// @Failure   	 404  {object} models.ApiError "Role not found"
+// @Failure   	 500  {object} models.ApiError
+// @Router       /roles/{id} [delete]
+func (h *RolesHandlers) Delete(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid role Id"))
+		return
+	}
+
+	_, err = h.rolesRepo.FindById(c, id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, models.NewApiError("Role not found"))
+		return
+	}
+
+	err = h.rolesRepo.Delete(c, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError(err.Error()))
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+// ChangePassword godoc
+// @Tags         roles - это выполняет роль Админа
+// @Summary      Change role password
+// @Accept       json
+// @Produce      json
+// @Param id path int true "Role id"
+// @Param request body handlers.changePasswordRequest true "Password data"
+// @Success      200  "OK"
+// @Failure   	 400  {object} models.ApiError "Invalid data"
+// @Failure   	 404  {object} models.ApiError "Role not found"
+// @Failure   	 500  {object} models.ApiError
+// @Router       /roles/{id}/changePassword [patch]
+func (h *RolesHandlers) ChangePassword(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid role Id"))
+		return
+	}
+
+	var request changePasswordRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid request payload"))
+		return
+	}
+
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError("Failed to hash password"))
+		return
+	}
+
+	role, err := h.rolesRepo.FindById(c, id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, models.NewApiError("Role not found"))
+		return
+	}
+
+	role.PasswordHash = string(passwordHash)
+
+	err = h.rolesRepo.Update(c, id, role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError(err.Error()))
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+package repositories
+
+import (
+	"context"
+	"goozinshe/models"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type RolesRepository struct {
+	db *pgxpool.Pool
+}
+
+func NewRolesRepository(conn *pgxpool.Pool) *RolesRepository {
+	return &RolesRepository{db: conn}
+}
+
+func (r *RolesRepository) FindById(c context.Context, id int) (models.Roles, error) {
+	row := r.db.QueryRow(c, "select id, name, email, password_hash, phonenumber, birthday, role from roles where id = $1", id)
+
+	var roles models.Roles
+	err := row.Scan(&roles.Id, &roles.Name, &roles.Email, &roles.PasswordHash, &roles.PhoneNumber, &roles.Birthday, &roles.IsAdmin)
+
+	// PhoneNumber  int
+	// Birthday     time.Tim
+
+	return roles, err
+}
+
+func (r *RolesRepository) FindByEmail(c context.Context, email string) (models.Roles, error) {
+	row := r.db.QueryRow(c, "select id, name, email, password_hash, phonenumber, birthday from roles where email = $1", email)
+
+	var roles models.Roles
+	err := row.Scan(&roles.Id, &roles.Name, &roles.Email, &roles.PasswordHash, &roles.PhoneNumber, &roles.Birthday)
+
+	return roles, err
+}
+
+func (r *RolesRepository) FindAll(c context.Context) ([]models.Roles, error) {
+	rows, err := r.db.Query(c, "select id, name, email, password_hash, phonenumber, birthday from roles order by id")
+	if err != nil {
+		return nil, err
+	}
+
+	roles := make([]models.Roles, 0)
+	for rows.Next() {
+		var role models.Roles
+		err := rows.Scan(&role.Id, &role.Name, &role.Email, &role.PasswordHash, &role.PhoneNumber, &role.Birthday)
+		if err != nil {
+			return nil, err
+		}
+
+		roles = append(roles, role)
+	}
+	if rows.Err() != nil {
+		return nil, err
+	}
+
+	return roles, nil
+}
+
+func (r *RolesRepository) Create(c context.Context, role models.Roles) (int, error) {
+	var id int
+	err := r.db.QueryRow(c, "insert into roles(name, email, password_hash, phonenumber, birthday) values($1, $2, $3, $4, $5) returning id", role.Name, role.Email, role.PasswordHash, role.PhoneNumber, role.Birthday).Scan(&id)
+
+	return id, err
+}
+
+func (r *RolesRepository) Update(c context.Context, id int, role models.Roles) error {
+	_, err := r.db.Exec(c, "update roles set name = $1, email = $2, password_hash = $3, phonenumber = $4, birthday = $5  where id = $6", role.Name, role.Email, role.PasswordHash, role.PhoneNumber, role.Birthday, id)
+	return err
+}
+
+func (r *RolesRepository) Delete(c context.Context, id int) error {
+	_, err := r.db.Exec(c, "delete from roles where id = $1", id)
+	return err
+}
+authorized.GET("/roles", rolesHandlers.FindAll) //
+	authorized.GET("/roles/:id", rolesHandlers.FindById)
+	authorized.POST("/roles", rolesHandlers.Create)
+	authorized.PUT("/roles/:id", rolesHandlers.Update)
+	authorized.PATCH("/roles/:id/changePassword", rolesHandlers.ChangePassword)
+	authorized.DELETE("/roles/:id", rolesHandlers.Delete)
+	
+	// authorized.GET("/rolesuser", rolesHandlers.FindAllUsers)
+	// authorized.DELETE("/rolesuser/:id", rolesHandlers.DeleteUser)
+	// authorized.PUT("/rolesuser/:id", rolesHandlers.UpdateUser)
+
+	// authorized.GET("rolesmovie", rolesHandlers.FindAllUsers)
+	// authorized.DELETE("/rolesmovie/:id", rolesHandlers.DeleteUser)
+	// authorized.PUT("/rolesmovie/:id", rolesHandlers.UpdateUser)
+	
+		movieAdminResponseHandler := handlers.NewMovieAdminResponseHandler(
+		moviesAdminRepository,
+		genresRepostiroy,
+		categoryRepository,
+		ageRepository,
+		allseriesRepository,
+	)
+      
+      moviesAdminRepository := repositories.NewMoviesAdminRepository(conn)
+      
+      package repositories
+
+import (
+	"context"
+	"fmt"
+	"goozinshe/logger"
+	"goozinshe/models"
+	"strconv"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
+)
+
+type MoviesAdminRepository struct {
+	db *pgxpool.Pool
+}
+
+func NewMoviesAdminRepository(conn *pgxpool.Pool) *MoviesAdminRepository {
+	return &MoviesAdminRepository{db: conn}
+}
+
+func (r *MoviesAdminRepository) FindById(c context.Context, id int) (models.MovieAdminResponse, error) {
+	sql :=
+		`
+SELECT 
+        m.id,
+        m.title,
+        m.description,
+        m.release_year,
+        m.director,
+        m.rating,
+        m.is_watched,
+        m.trailer_url,
+        m.poster_url,
+        g.id,
+        g.title,
+        g.poster_url,
+        c.id,
+        c.title,
+        c.poster_url,
+        a.id,
+        a.age,
+        a.poster_url,
+        e.id, 
+        e.series, 
+        e.title,            
+        e.description,
+        e.release_year,
+        e.director,      
+        e.rating,         
+        e.trailer_url
+    FROM movies m
+    JOIN movies_genres mg ON mg.movie_id = m.id
+    JOIN genres g ON mg.genre_id = g.id
+    JOIN movies_categories mc ON mc.movie_id = m.id
+    JOIN categories c ON mc.categorie_id = c.id
+    JOIN movies_ages ma ON ma.movie_id = m.id
+	JOIN ages a ON ma.age_id = a.id
+    left JOIN movies_allseries me ON me.movie_id = m.id
+    left JOIN allseries e ON me.allserie_id = e.id
+where m.id = $1
+	`
+
+	logger := logger.GetLogger()
+
+	rows, err := r.db.Query(c, sql, id)
+	defer rows.Close()
+	if err != nil {
+		logger.Error("Could not query database", zap.String("db_msg", err.Error()))
+		return models.MovieAdminResponse{}, err
+	}
+	var movie *models.MovieAdminResponse
+
+	categoriesMap := make(map[int]*models.Category, 0)
+	category := make([]*models.Category, 0)
+
+	genresMap := make(map[int]*models.Genre, 0)
+	genre := make([]*models.Genre, 0)
+
+	agesMap := make(map[int]*models.Age, 0)
+	age := make([]*models.Age, 0)
+
+	allseriesMap := make(map[int]*models.AllSeries, 0)
+	allserie := make([]*models.AllSeries, 0)
+
+	for rows.Next() {
+		var m models.MovieAdminResponse
+		var g models.Genre
+		var c models.Category
+		var a models.Age
+		var e models.AllSeries
+
+		err := rows.Scan(
+			&m.Id,
+			&m.Title,
+			&m.Description,
+			&m.ReleaseYear,
+			&m.Director,
+			&m.Rating,
+			&m.IsWatched,
+			&m.TrailerUrl,
+			&m.PosterUrl,
+			&g.Id,
+			&g.Title,
+			&g.PosterUrl,
+			&c.Id,
+			&c.Title,
+			&c.PosterUrl,
+			&a.Id,
+			&a.Age,
+			&a.PosterUrl,
+			&e.Id,
+			&e.Series,
+			&e.Title,
+			&e.Description,
+			&e.ReleaseYear,
+			&e.Director,
+			&e.Rating,
+			&e.TrailerUrl,
+		)
+		if err != nil {
+			return models.MovieAdminResponse{}, err
+		}
+
+		if movie == nil {
+			movie = &m
+		}
+
+		if _, exists := categoriesMap[c.Id]; !exists {
+			categoriesMap[c.Id] = &c
+			category = append(category, &c)
+		}
+
+		if _, exists := genresMap[g.Id]; !exists {
+			genresMap[g.Id] = &g
+			genre = append(genre, &g)
+		}
+
+		if _, exists := agesMap[a.Id]; !exists {
+			agesMap[a.Id] = &a
+			age = append(age, &a)
+		}
+
+		if e.Id != nil {
+			if _, exists := allseriesMap[*e.Id]; !exists {
+				allseriesMap[*e.Id] = &e
+				allserie = append(allserie, &e)
+			}
+		}
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return models.MovieAdminResponse{}, err
+	}
+
+	var categories []models.Category
+	for _, cat := range category {
+		categories = append(categories, *cat)
+	}
+
+	var genres []models.Genre
+	for _, gen := range genre {
+		genres = append(genres, *gen)
+	}
+
+	var ages []models.Age
+	for _, age := range age {
+		ages = append(ages, *age)
+	}
+
+	var allseries []models.AllSeries
+	for _, allserie := range allserie {
+		allseries = append(allseries, *allserie)
+	}
+
+	movie.Category = categories
+	movie.Genres = genres
+	movie.Ages = ages
+	movie.AllSeries = allseries
+
+	return *movie, nil
+}
+
+func (r *MoviesAdminRepository) FindAll(c context.Context, filters models.MovieFilters) ([]models.Movie, error) {
+	sql := ` 
+    SELECT 
+        m.id,
+        m.title,
+        m.description,
+        m.release_year,
+        m.director,
+        m.rating,
+        m.is_watched,
+        m.trailer_url,
+        m.poster_url,
+        g.id,
+        g.title,
+        g.poster_url,
+        c.id,
+        c.title,
+        c.poster_url,
+        a.id,
+        a.age,
+        a.poster_url,
+        e.id, 
+        e.series, 
+        e.title,            
+        e.description,
+        e.release_year,
+        e.director,      
+        e.rating,         
+        e.trailer_url
+    FROM movies m
+    JOIN movies_genres mg ON mg.movie_id = m.id
+    JOIN genres g ON mg.genre_id = g.id
+    JOIN movies_categories mc ON mc.movie_id = m.id
+    JOIN categories c ON mc.categorie_id = c.id
+    JOIN movies_ages ma ON ma.movie_id = m.id
+    JOIN ages a ON ma.age_id = a.id
+    left JOIN movies_allseries me ON me.movie_id = m.id
+    left JOIN allseries e ON me.allserie_id = e.id
+    `
+
+	params := pgx.NamedArgs{}
+
+	if filters.SearchTerm != "" {
+		// '%%%s%%' => '%поиск%'
+		sql = fmt.Sprintf("%s and m.title ilike @s", sql)
+		params["s"] = fmt.Sprintf("%%%s%%", filters.SearchTerm)
+	}
+	if filters.GenreId != "" {
+		sql = fmt.Sprintf("%s and g.id = @genreId", sql)
+		params["genreId"] = filters.GenreId
+	}
+	if filters.IsWatched != "" {
+		isWatched, _ := strconv.ParseBool(filters.IsWatched)
+
+		sql = fmt.Sprintf("%s and m.is_watched = @isWatched", sql)
+		params["isWatched"] = isWatched
+	}
+	if filters.Sort != "" {
+		identifier := pgx.Identifier{filters.Sort}
+		sql = fmt.Sprintf("%s order by m.%s", sql, identifier.Sanitize())
+	}
+
+	l := logger.GetLogger()
+	rows, err := r.db.Query(c, sql)
+	if err != nil {
+		l.Error(err.Error())
+		return nil, err
+	}
+
+	movies := make([]*models.Movie, 0)
+	moviesMap := make(map[int]*models.Movie)
+
+	allseriesMap := make(map[int]*models.AllSeries, 0)
+
+	for rows.Next() {
+		var m models.Movie
+		var g models.Genre
+		var c models.Category
+		var a models.Age
+		var e models.AllSeries
+
+		err := rows.Scan(
+			&m.Id,
+			&m.Title,
+			&m.Description,
+			&m.ReleaseYear,
+			&m.Director,
+			&m.Rating,
+			&m.IsWatched,
+			&m.TrailerUrl,
+			&m.PosterUrl,
+			&g.Id,
+			&g.Title,
+			&g.PosterUrl,
+			&c.Id,
+			&c.Title,
+			&c.PosterUrl,
+			&a.Id,
+			&a.Age,
+			&a.PosterUrl,
+			&e.Id,
+			&e.Series,
+			&e.Title,
+			&e.Description,
+			&e.ReleaseYear,
+			&e.Director,
+			&e.Rating,
+			&e.TrailerUrl,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, exists := moviesMap[m.Id]; !exists {
+			moviesMap[m.Id] = &m
+			movies = append(movies, &m)
+		}
+
+		// Обработка жанров
+		genreExists := false
+		for _, existingGenres := range moviesMap[m.Id].Genres {
+			if existingGenres.Id == g.Id {
+				genreExists = true
+				break
+			}
+		}
+		if !genreExists {
+			moviesMap[m.Id].Genres = append(moviesMap[m.Id].Genres, g)
+		}
+
+		// Обработка категорий
+		categoryExists := false
+		for _, existingCategory := range moviesMap[m.Id].Category {
+			if existingCategory.Id == c.Id {
+				categoryExists = true
+				break
+			}
+		}
+		if !categoryExists {
+			moviesMap[m.Id].Category = append(moviesMap[m.Id].Category, c)
+		}
+
+		// Обработка возрастных категорий
+		ageExists := false
+		for _, existingAge := range moviesMap[m.Id].Ages {
+			if existingAge.Id == a.Id {
+				ageExists = true
+				break
+			}
+		}
+		if !ageExists {
+			moviesMap[m.Id].Ages = append(moviesMap[m.Id].Ages, a)
+		}
+		// Обработка сериалов
+
+		if e.Id != nil {
+			if _, exists := allseriesMap[*e.Id]; !exists {
+				allseriesMap[*e.Id] = &e
+				moviesMap[m.Id].AllSeries = append(moviesMap[m.Id].AllSeries, e)
+			}
+		}
+	}
+
+	err = rows.Err()
+	if err != nil {
+		l.Error(err.Error())
+		return nil, err
+	}
+
+	concreteMovies := make([]models.Movie, 0, len(movies))
+	for _, v := range movies {
+		concreteMovies = append(concreteMovies, *v)
+	}
+
+	return concreteMovies, nil
+}
+
+// allseriesExists := false
+// for _, exisitingAllseries := range moviesMap[m.Id].AllSeries {
+// 	if exisitingAllseries.Id == e.Id {
+// 		allseriesExists = true
+// 		break
+// 	}
+// }
+// if !allseriesExists {
+// 	moviesMap[m.Id].AllSeries = append(moviesMap[m.Id].AllSeries, e)
+// }
+
+func (r *MoviesAdminRepository) Create(c context.Context, movie models.MovieAdminResponse) (int, error) {
+	l := logger.GetLogger()
+	var id int
+
+	tx, err := r.db.Begin(c)
+	if err != nil {
+		l.Error(err.Error())
+		return 0, err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback(c) // Если ошибка, откатываем транзакцию
+		}
+	}()
+
+	row := tx.QueryRow(c,
+		` 
+    insert into movies(title, description, release_year, director, trailer_url, poster_url)
+    values($1, $2, $3, $4, $5, $6)
+    returning id
+    `,
+		movie.Title,
+		movie.Description,
+		movie.ReleaseYear,
+		movie.Director,
+		movie.TrailerUrl,
+		movie.PosterUrl)
+
+	err = row.Scan(&id)
+	if err != nil {
+		l.Error(err.Error())
+		return 0, err
+	}
+	for _, genre := range movie.Genres {
+		_, err = tx.Exec(c, "insert into movies_genres(movie_id, genre_id) values($1, $2)", id, genre.Id)
+		if err != nil {
+			l.Error(err.Error())
+			return 0, err
+		}
+	}
+
+	for _, category := range movie.Category {
+		_, err = tx.Exec(c, "insert into movies_categories(movie_id, categorie_id) values($1, $2)", id, category.Id)
+		if err != nil {
+			l.Error(err.Error())
+			return 0, err
+		}
+	}
+
+	for _, age := range movie.Ages {
+		_, err = tx.Exec(c, "insert into movies_ages(movie_id, age_id) values($1, $2)", id, age.Id)
+		if err != nil {
+			l.Error(err.Error())
+			return 0, err
+		}
+	}
+
+	for _, age := range movie.Ages {
+		_, err = tx.Exec(c, "insert into movies_ages(movie_id, age_id) values($1, $2)", id, age.Id)
+		if err != nil {
+			l.Error(err.Error())
+			return 0, err
+		}
+	}
+
+	l.Info(fmt.Sprintf("проект %s добавлен успешно", movie.Title))
+
+	err = tx.Commit(c)
+	if err != nil {
+		l.Error(err.Error())
+		return 0, nil
+	}
+
+	return id, nil
+}
+
+func (r *MoviesAdminRepository) Update(c context.Context, id int, updatedMovie models.MovieAdminResponse) error {
+	l := logger.GetLogger()
+	tx, err := r.db.Begin(c)
+	if err != nil {
+		l.Error(err.Error())
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback(c) // Если ошибка, откатываем транзакцию
+		}
+	}()
+
+	_, err = tx.Exec(
+		c,
+		`
+        update movies
+        set 
+            title = $1,
+            description = $2,
+            release_year = $3,
+            director = $4,
+            trailer_url = $5,
+            poster_url = $6
+        where id = $7
+        `,
+		updatedMovie.Title,
+		updatedMovie.Description,
+		updatedMovie.ReleaseYear,
+		updatedMovie.Director,
+		updatedMovie.TrailerUrl,
+		updatedMovie.PosterUrl,
+		id)
+
+	if err != nil {
+		l.Error(err.Error())
+		return err
+	}
+
+	_, err = tx.Exec(c, "DELETE FROM movies_genres WHERE movie_id = $1", id)
+	if err != nil {
+		l.Error(err.Error())
+		return err
+	}
+
+	_, err = tx.Exec(c, "DELETE FROM movies_categories WHERE movie_id = $1", id)
+	if err != nil {
+		l.Error(err.Error())
+		return err
+	}
+
+	_, err = tx.Exec(c, "DELETE FROM movies_ages WHERE movie_id = $1", id)
+	if err != nil {
+		l.Error(err.Error())
+		return err
+	}
+
+	for _, genre := range updatedMovie.Genres {
+		_, err = tx.Exec(c, "insert into movies_genres(movie_id, genre_id) values($1, $2)", id, genre.Id)
+		if err != nil {
+			l.Error(err.Error())
+			return err
+		}
+	}
+
+	for _, category := range updatedMovie.Category {
+		_, err = tx.Exec(c, "insert into movies_categories(movie_id, categorie_id) values($1, $2)", id, category.Id)
+		if err != nil {
+			l.Error(err.Error())
+			return err
+		}
+	}
+
+	for _, age := range updatedMovie.Ages {
+		_, err = tx.Exec(c, "insert into movies_ages(movie_id, age_id) values($1, $2)", id, age.Id)
+		if err != nil {
+			l.Error(err.Error())
+			return err
+		}
+	}
+
+	err = tx.Commit(c)
+	if err != nil {
+		l.Error(err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (r *MoviesAdminRepository) Delete(c context.Context, id int) error {
+	l := logger.GetLogger()
+	tx, err := r.db.Begin(c)
+	if err != nil {
+		l.Error(err.Error())
+		return err
+	}
+
+	var movieTitle string
+	row := r.db.QueryRow(c, "select title from movies where id = $1", id)
+	err = row.Scan(&movieTitle)
+	if err != nil {
+		return err
+	}
+
+	l.Warn(fmt.Sprintf("Вы действительно хотите удалить %s?", movieTitle))
+
+	_, err = tx.Exec(c, "DELETE FROM movies_genres WHERE movie_id = $1", id)
+	if err != nil {
+		l.Error(err.Error())
+		tx.Rollback(c)
+		return err
+	}
+
+	_, err = tx.Exec(c, "DELETE FROM movies_categories WHERE movie_id = $1", id)
+	if err != nil {
+		l.Error(err.Error())
+		tx.Rollback(c)
+		return err
+	}
+
+	_, err = tx.Exec(c, "DELETE FROM movies_ages WHERE movie_id = $1", id)
+	if err != nil {
+		l.Error(err.Error())
+		tx.Rollback(c)
+		return err
+	}
+
+	_, err = tx.Exec(c, "DELETE FROM movies_allseries WHERE movie_id = $1", id)
+	if err != nil {
+		l.Error(err.Error())
+		tx.Rollback(c)
+		return err
+	}
+
+	_, err = tx.Exec(c, "DELETE FROM movies WHERE id = $1", id)
+	if err != nil {
+		l.Error(err.Error())
+		tx.Rollback(c)
+		return err
+	}
+
+	l.Info(fmt.Sprintf("Фильм %s удален:", movieTitle))
+
+	// Фиксируем транзакцию
+	err = tx.Commit(c)
+	if err != nil {
+		l.Error(err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (r *MoviesAdminRepository) SetWatched(c context.Context, id int, isWatched bool) error {
+	_, err := r.db.Exec(c, "update movies set is_watched = $1 where id = $2", isWatched, id)
+	if err != nil {
+		l := logger.GetLogger()
+		l.Error(err.Error())
+		return err
+	}
+
+	return nil
+}
+
+package handlers
+
+import (
+	"fmt"
+	"goozinshe/logger"
+	"goozinshe/models"
+	"goozinshe/repositories"
+	"mime/multipart"
+	"net/http"
+	"path/filepath"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+)
+
+type MovieAdminResponseHandler struct {
+	moviesAdminRepo *repositories.MoviesAdminRepository
+	genresRepo      *repositories.GenresRepository
+	categoryRepo    *repositories.CategoryRepository
+	ageRepo         *repositories.AgeRepository
+	allserieRepo    *repositories.AllSeriesRepository
+}
+
+type createMovieAdminResponseRequest struct {
+	Title       string                `form:"title"`
+	Description string                `form:"description"`
+	ReleaseYear int                   `form:"releaseYear"`
+	Director    string                `form:"director"`
+	IsWatched   bool                  `form:"is_watched"`
+	TrailerUrl  string                `form:"trailerUrl"`
+	PosterUrl   *multipart.FileHeader `form:"posterUrl"`
+	GenreIds    []int                 `form:"genreIds"`
+	CategoryIds []int                 `form:"categoryIds"`
+	AgeIds      []int                 `form:"ageIds"`
+	AllserieIds []int                 `form:"allserieIds"`
+}
+
+type updateMovieAdminResponseRequest struct {
+	Title       string                `form:"title"`
+	Description string                `form:"description"`
+	ReleaseYear int                   `form:"releaseYear"`
+	Director    string                `form:"director"`
+	IsWatched   bool                  `form:"is_watched"`
+	TrailerUrl  string                `form:"trailerUrl"`
+	PosterUrl   *multipart.FileHeader `form:"posterUrl"`
+	GenreIds    []int                 `form:"genreIds"`
+	CategoryIds []int                 `form:"categoryIds"`
+	AgeIds      []int                 `form:"ageIds"`
+	AllserieIds []int                 `form:"allserieIds"`
+}
+
+func NewMovieAdminResponseHandler(
+	moviesAdminRepo *repositories.MoviesAdminRepository,
+	genreRepo *repositories.GenresRepository,
+	categoryRepo *repositories.CategoryRepository,
+	ageRepo *repositories.AgeRepository,
+	allserieRepo *repositories.AllSeriesRepository,
+) *MovieAdminResponseHandler {
+	return &MovieAdminResponseHandler{
+		moviesAdminRepo: moviesAdminRepo,
+		genresRepo:      genreRepo,
+		categoryRepo:    categoryRepo,
+		ageRepo:         ageRepo,
+		allserieRepo:    allserieRepo,
+	}
+}
+
+// FindById godoc
+// @Summary      Find by id
+// @Tags         moviesAdmin
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "Movie id"
+// @Success      200  {object}  models.MovieAdminResponse
+// @Failure      400  {object}  models.ApiError "Invalid Movie Id"
+// @Router       /moviesAdmin/{id} [get]
+func (h *MovieAdminResponseHandler) FindById(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid Movie Id"))
+
+		return
+	}
+
+	movie, err := h.moviesAdminRepo.FindById(c, id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, movie)
+}
+
+// FindAll godoc
+// @Summary      Get all moviesAdmin
+// @Tags         moviesAdmin
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  []models.MovieAdminResponse "List of movies"
+// @Failure      500  {object}  models.ApiError "Internal Server Error"
+// @Router       /moviesAdmin [get]
+func (h *MovieAdminResponseHandler) FindAll(c *gin.Context) {
+	filters := models.MovieFilters{
+		SearchTerm: c.Query("search"),
+		IsWatched:  c.Query("iswatched"),
+		GenreId:    c.Query("genreids"),
+		Sort:       c.Query("sort"),
+	}
+	movies, err := h.moviesAdminRepo.FindAll(c, filters)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, movies)
+}
+
+// Create godoc
+// @Summary      Create moviesAdmin
+// @Tags         moviesAdmin
+// @Accept       json
+// @Produce      json
+// @Param        title body string true "Title of the movie"
+// @Param        description body string true "Description of the movie"
+// @Param        releaseYear body int true "ReleaseYear of the movie"
+// @Param        director body string true "Director"
+// @Param        trailerUrl body string true "TrailerUrl"
+// @Param      	 genreIds body []int true "Genre ids"
+// @Param		 categoryIds body []int true "Category ids"
+// @Param        ageIds body []int true "Age ids"
+// @Success      200  {object}  object{id=int} "OK"
+// @Failure      400  {object}  models.ApiError "Could not bind json"
+// @Failure      500  {object}  models.ApiError
+// @Router       /moviesAdmin [post]
+func (h *MovieAdminResponseHandler) Create(c *gin.Context) {
+	var request createMovieAdminResponseRequest
+
+	err := c.Bind(&request)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Could not bind json"))
+		return
+	}
+
+	genres, err := h.genresRepo.FindAllByIds(c, request.GenreIds)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	categories, err := h.categoryRepo.FindAllByIds(c, request.CategoryIds)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	ages, err := h.ageRepo.FindAllByIds(c, request.AgeIds)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	allserie, err := h.allserieRepo.FindAllByIds(c, request.AllserieIds)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	if request.PosterUrl == nil {
+		c.JSON(http.StatusBadRequest, "Poster file is required")
+		return
+	}
+
+	filename, err := h.saveMoviesPoster(c, request.PosterUrl)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError(err.Error()))
+		return
+	}
+
+	movies := models.MovieAdminResponse{
+		Title:       request.Title,
+		Description: request.Description,
+		ReleaseYear: request.ReleaseYear,
+		Director:    request.Director,
+		IsWatched:   request.IsWatched,
+		TrailerUrl:  request.TrailerUrl,
+		PosterUrl:   filename,
+		Genres:      genres,
+		Category:    categories,
+		Ages:        ages,
+		AllSeries:   allserie,
+	}
+
+	//IsWatched   bool        `form:"is_watched"`
+
+	id, err := h.moviesAdminRepo.Create(c, movies)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	logger := logger.GetLogger()
+	logger.Info("Movie has been created", zap.Int("movie_id", id))
+
+	c.JSON(http.StatusOK, gin.H{
+		"id": id,
+	})
+}
+
+func (h *MovieAdminResponseHandler) saveMoviesPoster(c *gin.Context, poster *multipart.FileHeader) (string, error) {
+	filename := fmt.Sprintf("%s%s", uuid.NewString(), filepath.Ext(poster.Filename))
+	filepath := fmt.Sprintf("images/%s", filename)
+	err := c.SaveUploadedFile(poster, filepath)
+
+	return filename, err
+}
+
+// Update godoc
+// @Summary      Update moviesAdmin
+// @Tags         moviesAdmin
+// @Accept       json
+// @Produce      json
+// @Param        title body string true "Title of the movie"
+// @Param        description body string true "Description of the movie"
+// @Param        releaseYear body int true "ReleaseYear of the movie"
+// @Param        director body string true "Director"
+// @Param        trailerUrl body string true "TrailerUrl"
+// @Param      	 genreIds body []int true "Genre ids"
+// @Param		 categoryIds body []int true "Category ids"
+// @Param        ageIds body []int true "Age ids"
+// @Success      200  {object}  object{id=int} "OK"
+// @Failure      400  {object}  models.ApiError "Could not bind json"
+// @Failure      500  {object}  models.ApiError
+// @Router       /moviesAdmin/{id} [put]
+func (h *MovieAdminResponseHandler) Update(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid Movie Id"))
+		return
+	}
+
+	_, err = h.moviesAdminRepo.FindById(c, id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	var request updateMovieAdminResponseRequest
+	err = c.Bind(&request)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Could not bind json"))
+		return
+	}
+
+	genres, err := h.genresRepo.FindAllByIds(c, request.GenreIds)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+	categories, err := h.categoryRepo.FindAllByIds(c, request.CategoryIds)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	ages, err := h.ageRepo.FindAllByIds(c, request.AgeIds)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	allseries, err := h.allserieRepo.FindAllByIds(c, request.AgeIds)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	filename, err := h.saveMoviesPoster(c, request.PosterUrl)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError(err.Error()))
+		return
+	}
+
+	movie := models.MovieAdminResponse{
+		Title:       request.Title,
+		Description: request.Description,
+		ReleaseYear: request.ReleaseYear,
+		Director:    request.Director,
+		IsWatched:   request.IsWatched,
+		TrailerUrl:  request.TrailerUrl,
+		PosterUrl:   filename,
+		Genres:      genres,
+		Category:    categories,
+		Ages:        ages,
+		AllSeries:   allseries,
+	}
+
+	err = h.moviesAdminRepo.Update(c, id, movie)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError("Failed to update movie"))
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+// Delete godoc
+// @Summary      Delete movie
+// @Tags         moviesAdmin
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "Movie id"
+// @Success      200  "OK"
+// @Failure   	 400  {object} models.ApiError "Invalid data"
+// @Failure   	 500  {object} models.ApiError
+// @Router       /moviesAdmin/{id} [delete]
+func (h *MovieAdminResponseHandler) Delete(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid Movie Id"))
+		return
+	}
+
+	_, err = h.moviesAdminRepo.FindById(c, id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError(err.Error()))
+		return
+	}
+
+	h.moviesAdminRepo.Delete(c, id)
+
+	c.Status(http.StatusNoContent)
+}
+
+// HandleSetWatched godoc
+// @Summary      Mark moviesAdmin as watched
+// @Tags         moviesAdmin
+// @Produce      json
+// @Param id path int true "Movie id"
+// @Param isWatched query bool true "Flag value"
+// @Success      200  "OK"
+// @Failure   	 400  {object} models.ApiError "Invalid data"
+// @Failure   	 500  {object} models.ApiError
+// @Router       /moviesAdmin/{id}/setWatched [patch]
+// @Security Bearer
+func (h *MovieAdminResponseHandler) HandleSetWatched(c *gin.Context) {
+	idStr := c.Param("movieId")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid Movie Id"))
+		return
+	}
+
+	isWatchedStr := c.Query("isWatched")
+	isWatched, err := strconv.ParseBool(isWatchedStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.NewApiError("Invalid isWatched value"))
+		return
+	}
+
+	err = h.moviesAdminRepo.SetWatched(c, id, isWatched)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.NewApiError(err.Error()))
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+
+с allseries я удалила 
+description, release_year, director, rating,
+                        &allserie.Description,
+			&allserie.ReleaseYear,
+			&allserie.Director,
+			&allserie.Rating,
+description, release_year, director, rating,
+description, release_year, director, rating, 
+                &allserie.Description,
+		&allserie.ReleaseYear,
+		&allserie.Director,
+		&allserie.Rating,
+description, release_year, director, rating,
+&allserie.Description,
+			&allserie.ReleaseYear,
+			&allserie.Director,
+			&allserie.Rating,
+
+
+			type createAllSeriesRequest struct {
+				Series *int    `form:"series"`
+				Title  *string `form:"title"`
+				// Description *string `form:"description"`
+				// ReleaseYear *int    `form:"release_year"`
+				// Director    *string `form:"director"`
+				// Rating      *int    `form:"rating"`
+				TrailerUrl *string `form:"trailer_url"`
+				Duration   *string `form:"duration"`
+			}
+			
+			type updateAllSeriesRequest struct {
+				Series *int    `form:"series"`
+				Title  *string `form:"title"`
+				// Description *string `form:"description"`
+				// ReleaseYear *int    `form:"release_year"`
+				// Director    *string `form:"director"`
+				// Rating      *int    `form:"rating"`
+				TrailerUrl *string `form:"trailer_url"`
+				Duration   *string `form:"duration"`
+			}

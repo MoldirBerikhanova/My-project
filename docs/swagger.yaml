@@ -1,0 +1,1641 @@
+basePath: /
+definitions:
+  handlers.changePasswordRequest:
+    properties:
+      password:
+        type: string
+    type: object
+  handlers.signUpRequest:
+    properties:
+      confirm_password:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  handlers.userResponse:
+    properties:
+      birthday:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      phonenumber:
+        type: integer
+      posterUrl:
+        type: string
+    type: object
+  models.Age:
+    properties:
+      age:
+        type: string
+      id:
+        type: integer
+      posterUrl:
+        type: string
+    type: object
+  models.AllSeries:
+    properties:
+      duration:
+        type: string
+      id:
+        description: Указатель на int
+        type: integer
+      poster_url:
+        type: string
+      series:
+        type: integer
+      title:
+        type: string
+      trailer_url:
+        type: string
+    type: object
+  models.ApiError:
+    properties:
+      error:
+        type: string
+    type: object
+  models.Category:
+    properties:
+      id:
+        type: integer
+      posterUrl:
+        type: string
+      title:
+        type: string
+    type: object
+  models.Genre:
+    properties:
+      id:
+        type: integer
+      posterUrl:
+        type: string
+      title:
+        type: string
+    type: object
+  models.Movie:
+    properties:
+      ages:
+        items:
+          $ref: '#/definitions/models.Age'
+        type: array
+      allseries:
+        description: / это сериалы без сезона
+        items:
+          $ref: '#/definitions/models.AllSeries'
+        type: array
+      categories:
+        items:
+          $ref: '#/definitions/models.Category'
+        type: array
+      description:
+        type: string
+      director:
+        type: string
+      duration:
+        type: string
+      genres:
+        items:
+          $ref: '#/definitions/models.Genre'
+        type: array
+      id:
+        type: integer
+      is_favourite:
+        type: boolean
+      poster_url:
+        type: string
+      producer:
+        type: string
+      rating:
+        type: integer
+      release_year:
+        type: integer
+      screen_src:
+        type: string
+      season:
+        description: / это с сезоном
+        items:
+          $ref: '#/definitions/models.Season'
+        type: array
+      title:
+        type: string
+      trailer_url:
+        type: string
+      video_url:
+        type: string
+      views_count:
+        type: integer
+      viewsYT:
+        type: integer
+    type: object
+  models.Season:
+    properties:
+      allseries:
+        items:
+          $ref: '#/definitions/models.AllSeries'
+        type: array
+      id:
+        type: integer
+      number:
+        type: integer
+      title:
+        type: string
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8081
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server celler server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: "OZINSHE\tAPI"
+  version: "1.0"
+paths:
+  /admin/ages:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Age model
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.Age'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Invalid request age
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: HandleAddAge age
+      tags:
+      - ages
+  /admin/ages/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ages id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ok
+          schema:
+            $ref: '#/definitions/models.Age'
+        "400":
+          description: Invalid age Id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Delete age
+      tags:
+      - ages
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Age model
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.Age'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Invalid Age Id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Update age
+      tags:
+      - ages
+  /admin/categories:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Category model
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.Category'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Invalid request category
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Create category
+      tags:
+      - categories
+  /admin/categories/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Category id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ok
+          schema:
+            $ref: '#/definitions/models.Category'
+        "400":
+          description: Invalid category Id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Delete category
+      tags:
+      - categories
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Category model
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.Category'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Invalid Category Id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Update category
+      tags:
+      - categories
+  /admin/genres:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Genre model
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.Genre'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Invalid request category
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Create genre
+      tags:
+      - genres
+  /admin/genres/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Genre id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ok
+          schema:
+            $ref: '#/definitions/models.Genre'
+        "400":
+          description: Invalid Movie Id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Find by id
+      tags:
+      - genres
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Genre model
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.Genre'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Invalid Genre Id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Update genre
+      tags:
+      - genres
+  /admin/movies:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of movies
+          schema:
+            items:
+              $ref: '#/definitions/models.Movie'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Get all movies for ADMIN
+      tags:
+      - movies
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Title of the movie
+        in: body
+        name: title
+        required: true
+        schema:
+          type: string
+      - description: Description of the movie
+        in: body
+        name: description
+        required: true
+        schema:
+          type: string
+      - description: ReleaseYear of the movie
+        in: body
+        name: releaseYear
+        required: true
+        schema:
+          type: integer
+      - description: Director
+        in: body
+        name: director
+        required: true
+        schema:
+          type: string
+      - description: TrailerUrl
+        in: body
+        name: trailerUrl
+        required: true
+        schema:
+          type: string
+      - description: Genre ids
+        in: body
+        name: genreIds
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      - description: Category ids
+        in: body
+        name: categoryIds
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      - description: Age ids
+        in: body
+        name: ageIds
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Could not bind json
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Create movie
+      tags:
+      - movies
+  /admin/movies/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Movie id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Invalid data
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Delete movie
+      tags:
+      - movies
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Movie id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ok
+          schema:
+            $ref: '#/definitions/models.Movie'
+        "400":
+          description: Invalid Movie Id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: поиск доступен только админам
+      tags:
+      - movies
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Title of the movie
+        in: body
+        name: title
+        required: true
+        schema:
+          type: string
+      - description: Description of the movie
+        in: body
+        name: description
+        required: true
+        schema:
+          type: string
+      - description: ReleaseYear of the movie
+        in: body
+        name: releaseYear
+        required: true
+        schema:
+          type: integer
+      - description: Director
+        in: body
+        name: director
+        required: true
+        schema:
+          type: string
+      - description: TrailerUrl
+        in: body
+        name: trailerUrl
+        required: true
+        schema:
+          type: string
+      - description: Genre ids
+        in: body
+        name: genreIds
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      - description: Category ids
+        in: body
+        name: categoryIds
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      - description: Age ids
+        in: body
+        name: ageIds
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Could not bind json
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Update movie
+      tags:
+      - movies
+  /admin/movies/allseries:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: AllSeries model
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.AllSeries'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Invalid request AllSeries
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Create allseries
+      tags:
+      - allseries - это эндпоинты для каждой серии
+  /admin/movies/allseries/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Allseries id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ok
+          schema:
+            $ref: '#/definitions/models.AllSeries'
+        "400":
+          description: Invalid AllSeries Id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Delete allseries
+      tags:
+      - allseries - это эндпоинты для каждой серии
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: AllSeries model
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.AllSeries'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Invalid AllSeries Id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Update allseries
+      tags:
+      - allseries - это эндпоинты для каждой серии
+  /admin/movies/seasons:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Seasons model
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.Season'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Invalid request Seasons
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Create Seasons
+      tags:
+      - Seasons - это эндпоинты для каждого сезона
+  /admin/movies/seasons{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Seasons id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ok
+          schema:
+            $ref: '#/definitions/models.Season'
+        "400":
+          description: Invalid Seasons Id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Delete Seasons
+      tags:
+      - Seasons - это эндпоинты для каждого сезона
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Seasons model
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.Season'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Invalid Seasons Id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Update Seasons
+      tags:
+      - Seasons - это эндпоинты для каждого сезона
+  /ages:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of age
+          schema:
+            items:
+              $ref: '#/definitions/models.Age'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Get all ages
+      tags:
+      - ages
+  /ages/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ages id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ok
+          schema:
+            $ref: '#/definitions/models.Age'
+        "400":
+          description: Invalid age Id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Find by id
+      tags:
+      - ages
+  /auth/signIn:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: эл.почта пользователя
+        in: body
+        name: email
+        required: true
+        schema:
+          type: string
+      - description: пароль пользователя
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              ' profileIncomplete':
+                type: boolean
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "401":
+          description: Invalid credials
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: could not generate jwt token
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Авторизация (вход в систему)
+      tags:
+      - /auth/signIn
+  /auth/signIn/:userId:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: имя пользователя
+        in: body
+        name: name
+        required: true
+        schema:
+          type: string
+      - description: моб.номер пользователя
+        in: body
+        name: phonenumber
+        required: true
+        schema:
+          type: string
+      - description: дата рождения пользователя
+        in: body
+        name: birthday
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              ' profileIncomplete':
+                type: boolean
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Database error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: could not create user
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Авторизация (Заполнение профиля пользователя)
+      tags:
+      - /auth/signIn
+  /auth/signOut:
+    post:
+      consumes:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              ' profileIncomplete':
+                type: boolean
+              id:
+                type: integer
+            type: object
+      summary: Авторизация (выход из системы)
+      tags:
+      - /auth/signOut
+  /auth/signUp:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Данные пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.signUpRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              ' profileIncomplete':
+                type: boolean
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Passwords do not match
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "409":
+          description: User already exists
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Database error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Авторизация (Регистрация пользователя)
+      tags:
+      - /auth/signUp
+  /auth/userInfo:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: имя пользователя
+        in: body
+        name: name
+        required: true
+        schema:
+          type: string
+      - description: эл.почта пользователя
+        in: body
+        name: email
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              ' profileIncomplete':
+                type: boolean
+              id:
+                type: integer
+            type: object
+        "500":
+          description: could not generate jwt token
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Авторизация (получение информации о пользователе)
+      tags:
+      - /auth/userInfo
+  /categories:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of movies
+          schema:
+            items:
+              $ref: '#/definitions/models.Movie'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Get all categories
+      tags:
+      - categories
+  /categories/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Category id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ok
+          schema:
+            $ref: '#/definitions/models.Category'
+        "400":
+          description: Invalid Movie Id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Find by id
+      tags:
+      - categories
+  /genres:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of genres
+          schema:
+            items:
+              $ref: '#/definitions/models.Genre'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Get all genres
+      tags:
+      - genres
+  /genres/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Genre id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ok
+          schema:
+            $ref: '#/definitions/models.Genre'
+        "400":
+          description: Invalid genre Id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Delete genre
+      tags:
+      - genres
+  /images/:imageId:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: image id
+        in: path
+        name: imageId
+        required: true
+        type: integer
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: Image to download
+          schema:
+            type: string
+        "400":
+          description: Invalid image id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Download image
+      tags:
+      - images
+  /movies/allseries:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of allseries
+          schema:
+            items:
+              $ref: '#/definitions/models.AllSeries'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Get all allseries
+      tags:
+      - allseries - это эндпоинты для каждой серии
+  /movies/allseries/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: AllSeries id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ok
+          schema:
+            $ref: '#/definitions/models.AllSeries'
+        "400":
+          description: Invalid allseries id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Find by id allseries
+      tags:
+      - allseries - это эндпоинты для каждой серии
+  /movies/seasons:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of Seasons
+          schema:
+            items:
+              $ref: '#/definitions/models.Season'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Get all Seasons
+      tags:
+      - Seasons - это эндпоинты для каждого сезона
+  /movies/seasons/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Seasons id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ok
+          schema:
+            $ref: '#/definitions/models.Season'
+        "400":
+          description: Invalid Seasons id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Find by id Seasons
+      tags:
+      - Seasons - это эндпоинты для каждого сезона
+  /movies/user:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of movies
+          schema:
+            items:
+              $ref: '#/definitions/models.Movie'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Get all movies for Users
+      tags:
+      - movies для пользователей
+  /movies/user/movieId:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of movies
+          schema:
+            items:
+              $ref: '#/definitions/models.Movie'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Get all movies for Users
+      tags:
+      - movies для пользователей
+  /selected:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Movie'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: получение списка проектов на главной
+      tags:
+      - проекты на главную
+  /selected/:movieId:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Movie id
+        in: path
+        name: movieId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Invalid data
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Удаление проектов с главной
+      tags:
+      - проекты на главную
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Movie id
+        in: path
+        name: movieId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Invalid data
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Добавление проектов на главную
+      tags:
+      - проекты на главную
+  /users:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.userResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Get users list
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: имя пользователя
+        in: body
+        name: name
+        required: true
+        schema:
+          type: string
+      - description: эл.почта пользователя
+        in: body
+        name: email
+        required: true
+        schema:
+          type: string
+      - description: пароль пользователя
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      - description: подтверждение пароля
+        in: body
+        name: confirm_passowrd
+        required: true
+        schema:
+          type: string
+      - description: моб.номер пользователя
+        in: body
+        name: phonenumber
+        required: true
+        schema:
+          type: string
+      - description: дата рождения пользователя
+        in: body
+        name: birthday
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Invalid data
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Create user
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: User id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Invalid data
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Delete user
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: User id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.userResponse'
+            type: array
+        "400":
+          description: Invalid user id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Find users by id
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: имя пользователя
+        in: body
+        name: name
+        required: true
+        schema:
+          type: string
+      - description: эл.почта пользователя
+        in: body
+        name: email
+        required: true
+        schema:
+          type: string
+      - description: пароль пользователя
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      - description: моб.номер пользователя
+        in: body
+        name: phonenumber
+        required: true
+        schema:
+          type: string
+      - description: дата рождения пользователя
+        in: body
+        name: birthday
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Update user
+      tags:
+      - users
+  /users/{id}/changePassword:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: User id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Password data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.changePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Invalid data
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Change user password
+      tags:
+      - users
+  /video/:videoId:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: video id
+        in: path
+        name: imageId
+        required: true
+        type: integer
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: video to download
+          schema:
+            type: string
+        "400":
+          description: Invalid image id
+          schema:
+            $ref: '#/definitions/models.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ApiError'
+      summary: Download video
+      tags:
+      - video
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"
